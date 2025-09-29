@@ -1,43 +1,60 @@
-# Crawl Oneflare
+# OneFlare Business Crawler
 
-This project provides a Python script that uses Selenium WebDriver to scrape business listings from Oneflare's air-conditioning category and store the results in an Excel workbook.
+Object-oriented Selenium crawler for harvesting OneFlare business listings and exporting structured records to Excel.
 
-## Features
-- Launches a Chrome session and loads the chosen Oneflare category page.
-- Collects every business profile link discovered on the listing page.
-- Visits each profile to capture the business name, jobs completed, phone number, website URL, address, and profile URL.
-- Exports the gathered records to `business_data.xlsx` for further analysis.
+## Overview
+- Automates Chrome to load a OneFlare category page, capture every business profile link, and extract key fields.
+- Uses dataclasses (`CrawlerSettings`, `BusinessRecord`) and a dedicated `OneFlareCrawler` class for maintainable logic.
+- Provides configuration flags for wait timings, headless mode, logging verbosity, and output destination.
+- Persists results through an `ExcelExporter`, producing recruiter-friendly, analysis-ready spreadsheets.
 
-## Requirements
-- Python 3.9 or newer.
-- Google Chrome installed on the machine running the scraper.
-- A ChromeDriver binary that matches your Chrome version and is available on your system `PATH`.
-- Python packages: `selenium`, `pandas`, and `openpyxl` (used by `pandas` to write Excel files).
-
-## Setup
-1. Clone this repository or download the project files.
-2. (Optional) Create and activate a virtual environment for the project.
-3. Install the Python dependencies:
+## Installation
+1. Ensure **Python 3.9+**, **Google Chrome**, and a matching **chromedriver** binary are installed and accessible on your `PATH`.
+2. (Optional) create a virtual environment.
+3. Install project requirements:
    ```bash
    pip install selenium pandas openpyxl
    ```
-4. Ensure the ChromeDriver executable is accessible (either in the project folder or on the `PATH`).
 
 ## Usage
-1. Review the `category_url` value near the top of `crawl_V2.py` and change it if you want to target a different Oneflare category.
-2. Run the scraper from the project directory:
-   ```bash
-   python crawl_V2.py
-   ```
-3. The script waits up to 60 seconds for the initial category page to load, gathers profile links, crawls each business page, and writes the output to `business_data.xlsx`.
-4. When the run is complete, the Excel file will be available in the project folder and the browser session will close automatically.
+```bash
+python crawl_V3.py \
+    --category-url https://www.oneflare.com.au/air-conditioning \
+    --output business_data.xlsx \
+    --preload-delay 60 \
+    --business-page-delay 3 \
+    --wait-timeout 15 \
+    --headless \
+    --verbose
+```
+- Omit `--headless` to view the browser window.
+- Drop `--verbose` for leaner INFO-level logs.
+- Generated Excel files overwrite existing files with the same name.
 
-## Customisation
-- Adjust the `time.sleep` values if your network is slow or if Oneflare changes how the content loads.
-- Update the XPath or class-based selectors in `crawl_V2.py` if Oneflare modifies its page structure.
-- Extend the `extract_data` function to scrape additional fields as required.
+## Configuration
+`crawl_V3.py` consolidates selectors and delays in `CrawlerSettings`. Tweak these if OneFlare updates its layout:
+- `business_links_xpath`: locator for profile links on the category page.
+- `detail_css_selector`: shared selector used to find labelled rows (Website, Address, etc.).
+- `preload_delay` / `business_page_delay`: coarse waits for asynchronous content.
+
+## Data Schema
+Each row in the exported workbook maps to a `BusinessRecord` with the following columns:
+- `business_name`
+- `jobs_completed`
+- `phone_number`
+- `website_url`
+- `address`
+- `url`
+
+## Extending the Project
+- Add new properties to `BusinessRecord` and update `_extract_detail_by_label` or dedicated helper methods to scrape them.
+- Swap `ExcelExporter.export` with a CSV writer, database client, or API integration for alternative storage.
+- Wrap `OneFlareCrawler` in scheduled jobs or integrate with messaging/monitoring pipelines for production use.
 
 ## Troubleshooting
-- **WebDriver errors**: Confirm that ChromeDriver matches your Chrome version and that both are accessible to the script.
-- **Missing fields (`"N/A"`)**: Some profiles hide data behind interactions or do not include it; you may need to update selectors or add extra waits for dynamic content.
-- **Rate limiting or blocking**: Respect Oneflare's terms of use; consider adding longer delays or rotating IPs if you plan to run large crawls.
+- **Driver launch failure**: check that your chromedriver version matches the installed Chrome release.
+- **Missing data (`N/A`)**: adjust wait times, refine selectors, or add explicit scroll/interactions for dynamic content.
+- **Site blocking / rate limits**: respect OneFlare's terms; apply throttling, randomised delays, or proxy rotation for larger crawls.
+
+## Contributing
+Feel free to fork and iterate on the crawler—pull requests that improve resilience, add tests, or expand data coverage are welcome.
